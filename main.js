@@ -57,7 +57,7 @@ tail.on('line', function (data) {
   }
   else if (blockheads) {
     if (data.startsWith('\t')) {
-      message += '\n' + data.split(/\t(.+)/)[1];
+      message.content += '\n' + data.split(/\t(.+)/)[1];
     }
     else {
       blockheads = false;
