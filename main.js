@@ -81,6 +81,9 @@ function gotMessage() {
   if (message.content.toLowerCase() === 'test') {
     send(message.server, 'It works!');
   }
+  else if (message.content.startsWith('eval') && message.author === 'WINGYSAM') {
+    send(message.server, eval(message.content.substr(5)));
+  }
 }
 
 function playerJoined() {
