@@ -7,9 +7,20 @@ const spawn = require('child_process').spawn;
 
 var tail = new Tail('/private/var/log/system.log');
 
-fs.writeFile('log', '', function (err) {});
+var config = require(__dirname + '/config.json');
+function writeConfig() {
+  fs.writeFile(__dirname = '/config.json', JSON.stringify(config, null, 2), function (err) {
+    logger.error(err);
+  });
+}
+
 var logger = {
   log: function (message, header='log') {
+    var textToLog = '[' + header.toUpperCase() + '] ' + message;
+    console.log(textToLog);
+    fs.appendFile('log', textToLog + '\n', (err) => {});
+  },
+  error: function (message, header='error') {
     var textToLog = '[' + header.toUpperCase() + '] ' + message;
     console.log(textToLog);
     fs.appendFile('log', textToLog + '\n', (err) => {});
@@ -78,11 +89,17 @@ function getUsername(message) {
 
 function gotMessage() {
   logger.log(message.author + ': ' + message.content, message.server);
-  if (message.content.toLowerCase() === 'test') {
+  if (message.content.toLowerCase() === config.prefix + 'test') {
     send(message.server, 'It works!');
   }
-  else if (message.content.startsWith('eval') && message.author === 'WINGYSAM') {
-    send(message.server, eval(message.content.substr(5)));
+  else if (message.content.startsWith(config.prefix + 'eval') && message.author === 'WINGYSAM') {
+    try {
+      var result = eval(message.content.substr(config.prefix.length + 5));
+      if (! result.startsWith('/')) send(message.server, result);
+      else send(message.server, 'That starts with a slash. Refusing to send.');
+    } catch (error) {
+      send(message.server, error);
+    }
   }
 }
 
@@ -98,3 +115,5 @@ function playerLeft() {
 function send(server, message) {
   spawn('osascript', ['-l', 'JavaScript', 'send.scpt', server, message]);
 }
+
+logger.log('Started.', 'bot');
