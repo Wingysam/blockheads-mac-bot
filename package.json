@@ -11,8 +11,5 @@
   ],
   "author": "Wingysam",
   "license": "ISC",
-  "dependencies": {
-    "tail": "1.2.1"
-  },
   "private": true
 }

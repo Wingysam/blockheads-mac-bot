@@ -8,7 +8,8 @@ const Tail = require('tail').Tail;
 const util = require("util");
 const fs = require('fs');
 
-var tail = new Tail('/private/var/log/system.log');
+//var tail = new Tail('/private/var/log/system.log');
+var tail = spawn('tail', ['-n', '0', '-f', '/private/var/log/system.log']);
 
 function Bot() {
     eventEmitter.call(this);
@@ -25,7 +26,10 @@ var message = '';
 
 Bot.prototype.start = function() {
   var that = this;
-  tail.on('line', function (data) {
+  tail.stdout.on('data', function (data) {
+    if (Buffer.isBuffer(data)) {
+      data = data.toString('utf8');
+    }
     if (data.includes('BlockheadsServer')) {
       if (data.split(/:(.+)/)[1].split(/:(.+)/)[1].split(/:(.+)/)[1].split(/ (.+)/)[1].includes('-')) {
         if (data.split(/:(.+)/)[1].split(/:(.+)/)[1].split(/:(.+)/)[1].split(/ (.+)/)[1].includes(':')) {
@@ -35,11 +39,26 @@ Bot.prototype.start = function() {
             server: data.split(/:(.+)/)[1].split(/:(.+)/)[1].split(/:(.+)/)[1].split(/ (.+)/)[1].split('-')[0].substr(0, data.split(/:(.+)/)[1].split(/:(.+)/)[1].split(/:(.+)/)[1].split(/ (.+)/)[1].split('-')[0].length - 1)
           };
           blockheads = true;
+          lines = data.split('\n');
+          lines.shift();
+          for (var i = 0; i < lines.length; i++) {
+            if (lines[i].startsWith('\t')) {
+              message.content += '\n' + lines[i].substr(1);
+            }
+          }
           if (message.author !== 'Client disconnected') {
-            setTimeout(function() {that.emit('message', message);}, 100);
+            that.emit('message', message);
+          } else {
+            var leave = {
+              player: {
+                name: data.split('Player Disconnected ')[1].replace('\n', ''),
+              },
+              server: data.split(/:(.+)/)[1].split(/:(.+)/)[1].split(/:(.+)/)[1].split(/ (.+)/)[1].split('-')[0].substr(0, data.split(/:(.+)/)[1].split(/:(.+)/)[1].split(/:(.+)/)[1].split(/ (.+)/)[1].split('-')[0].length - 1)
+            };
+            that.emit('leave', leave);
           }
         } else {
-          try {
+          if (! data.includes('Dis')) {
             var join = {
               player: {
                 name: data.split(/:(.+)/)[1].split(/:(.+)/)[1].split(/:(.+)/)[1].split(/ (.+)/)[1].split(/- (.+)/)[1].substr(17).split(' |')[0],
@@ -47,26 +66,9 @@ Bot.prototype.start = function() {
               },
               server: data.split(/:(.+)/)[1].split(/:(.+)/)[1].split(/:(.+)/)[1].split(/ (.+)/)[1].split('-')[0].substr(0, data.split(/:(.+)/)[1].split(/:(.+)/)[1].split(/:(.+)/)[1].split(/ (.+)/)[1].split('-')[0].length - 1)
             };
-            setTimeout(function() {that.emit('join', join);}, 100);
-          }
-          catch (e) {
-            var leave = {
-              player: {
-                name: data.split(/:(.+)/)[1].split(/:(.+)/)[1].split(/:(.+)/)[1].split(/ (.+)/)[1].split(/- (.+)/)[1].substr(20).split(' |')[0],
-              },
-              server: data.split(/:(.+)/)[1].split(/:(.+)/)[1].split(/:(.+)/)[1].split(/ (.+)/)[1].split('-')[0].substr(0, data.split(/:(.+)/)[1].split(/:(.+)/)[1].split(/:(.+)/)[1].split(/ (.+)/)[1].split('-')[0].length - 1)
-            };
-            setTimeout(function() {that.emit('leave', leave);}, 100);
+            that.emit('join', join);
           }
         }
-      }
-    }
-    else if (blockheads) {
-      if (data.startsWith('\t')) {
-        message.content += '\n' + data.split(/\t(.+)/)[1];
-      }
-      else {
-        blockheads = false;
       }
     }
   });
