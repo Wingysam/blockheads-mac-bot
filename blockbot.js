@@ -9,7 +9,7 @@ const util = require("util");
 const fs = require('fs');
 
 //var tail = new Tail('/private/var/log/system.log');
-var tail = spawn('tail', ['-n', '0', '-f', '/private/var/log/system.log']);
+var tail = spawn('tail', ['-n', '0', '-F', '/private/var/log/system.log']);
 
 function Bot() {
     eventEmitter.call(this);
